@@ -273,7 +273,7 @@ The above result shows that there are 11,323 missing values in the varibale `OCC
 
 In order to choose an appropriate method to deal with missing values, it is necessary to analyse the corresponding **missing pattern** and **missing data mechanism**, because these approach are based on different assumptions. It is easy to distinguish the missing pattern of this data set by the use of the function **md.pattern** from **MICE** package.
 
-```{r, eval=FALSE,echo=FALSE}
+```{r}
 library(mice)
 
 # check the missing pattern by using md.pattern function
@@ -316,7 +316,7 @@ Regarding the application of MICE, two assumptions should be taken into consider
 When using the **MICE** function, there are 2 prime parameters that need to be configured. One parameter is **m**, intended for the number of imputed dataset that we would like to generate. As a result, 1 is enough. And the other is **meth**, designed for the methods we have chosen to undergo the regression. Here, we are using the "polyreg", Bayesian polytomous regression, due to reason that these missing values all belong to factor variables.
 
 
-```{r, message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
+```{r, message=FALSE, warning=FALSE}
 # imputed data with mice function
 tempData <- mice(to_imp_data, m = 1, meth = "polyreg", seed = 2020)
 
@@ -338,7 +338,7 @@ In MICE, parametric regression models are needed and assumptions about the distr
 
 Regarding the prime parameter selection, there are three parameters that need to be taken into consideration. Firstly, the dataset with missing values **xmins**. Then, **maxiter**, which helps decide the number of iterations that need to be done during the imputation. The last parameter is **ntree** which implies the number of random trees to grow in each forest. 
 
-```{r, message=FALSE, warning=FALSE, eval=FALSE,echo=FALSE}
+```{r, message=FALSE, warning=FALSE}
 library(missForest)
 
 # Missing value imputation with missForest
