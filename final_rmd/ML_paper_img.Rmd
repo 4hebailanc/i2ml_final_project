@@ -24,6 +24,8 @@ The credit card business has entered a fast-rising development stage after an in
 
 \newpage
 
+<!-- The flowchart below (Figure \ref{fig:figs}) illustrates the process of our experiment. First, we prepare the data and define the target variable. Afterwards, we need to take care of the missing values in our data set. Here, we will try three different methods to deal with missing values - Listwise deletion, MICE and missForest. Then we have to encode the nominal variable to a numeric format so that we can use it for training. We first compare the results of all data set between different learner without fine-tuning. Subsequently, we will select one data set and perform further fine-tuning on it. In the end, we will compare the final results of all, and conclude with one method. -->
+
 The flowchart below (Figure 1) illustrates the process of our experiment. It is steps are as following:
 
 1. Preparing the data and defining the target variable;
@@ -47,12 +49,12 @@ According to (Bishop, Christopher (2006)), in machine learning, a feature is an 
 The raw data, which consists of two data set **application_record.csv** and **credit_record.csv**, given by an Excel file in the csv format.
 
 One of the most straightforward ways to import an Excel file into R is using the **read_csv** function. It is good practice to conduct a preliminary examination after importing the raw data, in order to ensure that the imported data has the expected format:
-```{r global_options, include=FALSE}
+```{r echo=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
 
-```{r}
+```{r warning=FALSE,message=FALSE}
 library(readr)
 
 # read dataset
@@ -65,7 +67,7 @@ record <- read_csv("./data/credit_record.csv")
 
 The following code describes the process of defining the response variable with the name **y**. For some operations we rely on the **dplyr** package.
 
-```{r}
+```{r warning=FALSE,message=FALSE}
 library(dplyr)
 
 # we first group all data from the credit record by "ID"
@@ -314,7 +316,7 @@ Regarding the application of MICE, two assumptions should be taken into consider
 When using the **MICE** function, there are 2 prime parameters that need to be configured. One parameter is **m**, intended for the number of imputed dataset that we would like to generate. As a result, 1 is enough. And the other is **meth**, designed for the methods we have chosen to undergo the regression. Here, we are using the "polyreg", Bayesian polytomous regression, due to reason that these missing values all belong to factor variables.
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # imputed data with mice function
 tempData <- mice(to_imp_data, m = 1, meth = "polyreg", seed = 2020)
 
@@ -324,7 +326,7 @@ summary(tempData$imp$OCCUPATION_TYPE)
  
 In order to get a whole dataset, we can complete the data frame with the imputed ones.
 
-```{r}
+```{r, eval=FALSE, echo=FALSE}
 #complete the whole dataset with the imputed variable
 completeData <- complete(tempData)
 ```
@@ -336,7 +338,7 @@ In MICE, parametric regression models are needed and assumptions about the distr
 
 Regarding the prime parameter selection, there are three parameters that need to be taken into consideration. Firstly, the dataset with missing values **xmins**. Then, **maxiter**, which helps decide the number of iterations that need to be done during the imputation. The last parameter is **ntree** which implies the number of random trees to grow in each forest. 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library(missForest)
 
 # Missing value imputation with missForest
@@ -414,7 +416,8 @@ within one feature and the IV does not change a lot, which means the distributio
 of feature with respect to target is not rapidly changed, we can accept this mergence.
 
 ### Implementation
-```{r}
+```{r echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(fig.height = 3)
 library(tidyverse)
 library(data.table)
 library(mltools)
@@ -422,7 +425,7 @@ library(checkmate)
 library(scorecard)
 ```
 
-```{r}
+```{r echo=FALSE}
 
 # calc_iv function compute the "information value" of each category of variables.
 calc_iv <- function(feature) {
@@ -492,7 +495,7 @@ variables, i.e. `CODE_GENDER`, `FLAG_OWN_CAR`, `FLAG_OWN_REALTY`, `NAME_INCOME_T
 `NAME_EDUCATION_TYPE`, `NAME_FAMILY_STATUS`, `NAME_HOUSING_TYPE`, `OCCUPATION_TYPE`,
 only  `CODE_GENDER`, `FLAG_OWN_CAR`, `FLAG_OWN_REALTY` are binary factory variables.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 dl_data <- read.csv2("./data/dl_na_data.csv")
 final_data <- dl_data
 binary_data <- final_data %>% select_if(is.factor)
@@ -503,7 +506,7 @@ glimpse(binary_data)
 As for binary factor variables, we write a function **convert_binary_variable** to  convert them into binary numeric type for next modelling. After converting, nominal values in the three variables `CODE_GENDER`, `FLAG_OWN_CAR`, `FLAG_OWN_REALTY`  are replaced by values `1` or `2`. 
 As for `CODE_GENDER`, value "`1`" represents the original type "`F`" and "`2`" represents the original type "`M`". As for `FLAG_OWN_CAR` and `FLAG_OWN_REALTY`, value "`1`" represents the original type "`N`" and value "`2`" represents the original type "`Y`".
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 # function to convert binary variable into numeric.
 convert_binary_variable <- function(feature) {
@@ -528,7 +531,7 @@ glimpse(converted_binary_data)
 After converting binary factor variables, five Categorical variables are remained, i.e.
 `NAME_INCOME_TYPE`, `NAME_EDUCATION_TYPE`, `NAME_FAMILY_STATUS`, `NAME_HOUSING_TYPE`, `OCCUPATION_TYPE`,
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 # find which variables have several values
 dif_variable <- setdiff(names(final_data), names(converted_data))
@@ -537,7 +540,7 @@ dif_variable
 
 As for `NAME_INCOME_TYPE`, we wrote the function **calc_iv** to inspect its WOE and IV.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 calc_iv(dif_variable[1])
 ```
 
@@ -546,7 +549,7 @@ Factor `Pensioner` can be regarded as  "refuse mark", as they doesn't work and h
 On the other hand, `Student` can be regarded as "accept mark", perhaps because they can get finantial support from their parents.
 Although the two factor are relatively strange, we will not merge them into other types.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # analyse the details of first multi-factors variable
 # found the variable "NAME_INCOME_TYPE" has 5 types of values
 final_data["less_factor_income"] <- final_data %>%
@@ -554,7 +557,7 @@ final_data["less_factor_income"] <- final_data %>%
 ```
 
 As for `NAME_EDUCSTION_TYPE`, we also inspect this variables at first.
-```{r}
+```{r, message=FALSE, warning=FALSE}
 calc_iv(dif_variable[2])
 ```
 
@@ -562,7 +565,7 @@ We noticed that factor `Academic degree` also can be regarded as "accept mark",
 `Higher education` and `Incomplete higher` have the same distribution, so we merge them together.
 IV slightly decreases from **0.01043881** to **0.00935902**, which we can accpet.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # analyse the details of second multi-factors variable
 # found the variable "NAME_EDUCSTION_TYPE" has 5 types of values. we integrate
 # "Incomplete higher" with "Higher education"
@@ -576,7 +579,7 @@ calc_iv("less_factor_edu")
 
 We noticed `NAME_FAMILY_STATUS` feature is relatively balanced, no need to change.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # analyse the details of third multi-factors variable
 calc_iv(dif_variable[3])
 
@@ -588,13 +591,13 @@ final_data["less_factor_status"] <- final_data %>% pull(dif_variable[3])
 We noticed the variable `NAME_HOUSING_TYPE` has 6 types of values. Factor `Co-op apartment` has 
 the same distribution with `Office apartment`. so we merge them into one factor.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 calc_iv(dif_variable[4])
 ```
 
 After merge `Co-op apartment` into `Office apartment`, IV slightly decreases from **0.007327503** to **0.007086979**,which we can accpet.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # analyse the details of fourth multi-factors variable
 # found the variable "NAME_HOUSING_TYPE" has 6 types of values. we integrate
 # "Co-op apartment" with "Office apartment"
@@ -611,11 +614,11 @@ We integrate some of them with different working status. i.e. `Cleaning staff`, 
 can be classified as `Labor`, `Accountants`, `Core staff` can be classified as `Office`,
 `IT staff`, `High skilltech staff` can be classified as `higher`,which means they earn a higher salary.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 calc_iv(dif_variable[5])
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 # analyse the details of fifth multi-factors variable
 # found the variable "NAME_HOUSING_TYPE" has too many categories.
@@ -652,7 +655,7 @@ calc_iv("less_factor_work")
 ```
 
 Then encode multi-factors variables as one-hot variables.
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # encode multi-factors variables into one-hot
 factor_data <- final_data %>%
   select(starts_with("less")) %>%
@@ -671,7 +674,7 @@ And we discretizate the continuous variables with the help of **woebin** functio
 When using the **woebin** function, there is one parameter **method** that need to be configured, desiged for which method will based on to discretizate variables. **method** has two options, **tree** and **chimerge**. We choose **chimerge** because we 
 noticed it brings better performance for modelling.
 
-```{r}
+```{r, message=FALSE, warning=FALSE, results=FALSE}
 # Binning continuous variable to improve performance.
 dl_bin <- woebin(converted_data,
   y = "y",
@@ -685,7 +688,7 @@ Now we inspect the Binning variables.
 
 The bart chart below illustrates the result of discretization for several continuous variable `CHT_CHILDREN`, this variable has been divided into 3 groups, i.e. `[-inf, 1)`,`[1,2)`,`[2, inf)`. The percentage of each groups is provided above each column. For example, 15908, which account for 63.3% of the total users, have been classified into the first group. In addtion to this, **#bad** and **#good** indicate the distribution of the number of risk users and normal users in these groups. The most important ratios, bad ratios, representing the proportion of "`bad`" users to "`good`" samples in each category, are shown inside of the bar. We notice the bad ratios for categories are linear, which means this binning is good.
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.height=4}
 # plot binning variable
 plotlist <- woebin_plot(dl_bin)
 plotlist[1]
@@ -695,7 +698,7 @@ plotlist[1]
 As for `AMT_INCOME_TOTAL` , we notice that it is discretizated into several categories,
 although the bad ratios for categories are not strictly linear, this binning has second highest IV 0.1368.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # plot binning variable
 plotlist <- woebin_plot(dl_bin)
 plotlist[2]
@@ -705,7 +708,7 @@ As for `DAYS_BIRTH` , we notice that it is discretizated into 7 categories, i.e.
 `[-inf, -19000]`,`[-19000, -175000]` etc.  and the bad ratios for categories is linear, which means 
 this binnning is good.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # plot binning variable
 plotlist <- woebin_plot(dl_bin)
 plotlist[3]
@@ -714,7 +717,7 @@ plotlist[3]
 As for `DAYS_EMPLOYED` , we notice that it is discretizated into several categories,
 although the bad ratios for categories are not strictly linear, this binning has  highest IV 0.2815.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # plot binning variable
 plotlist <- woebin_plot(dl_bin)
 plotlist[4]
@@ -724,7 +727,7 @@ As for `CNT_FAM_MEMBERS` , we notice that it is discretizated into 4 categories,
 `[-inf, 2)`,`[2, 3)`,`[3, 4)` and `[4, inf)`. and the bad ratios for categories is linear, which means 
 this binnning is good.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # plot binning variable
 plotlist <- woebin_plot(dl_bin)
 plotlist[5]
@@ -733,7 +736,7 @@ plotlist[5]
 Finally we combine binning variables, binary factor variables, and category variables with original data to produce
 `dl_iv_data` and For the consistency of features engineering we repeat the whole process for mf_data and mice_data to produce `mf_iv_data` and `mf_mice_data`.
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # cbind dl_bin with dl_iv_data
 dl_iv_data <- woebin_ply(converted_data, rbindlist(dl_bin))
 
@@ -750,7 +753,7 @@ the consistency of data, therefor we will get three datasets: **dl_iv_data**, **
 
 Having a look at the whole dataset after deleting or imputation, we can figure out there are 8 nominal variables. And since all the nominal variables are categorically arranged, we can use the *one-hot-encoding* to deal with different kinds of nominals. The general idea of using one-hot-encoding is to mark the nominals(categories) into vectors(0 and 1 composed), in which if this particular category exists then mark the element with 1. When the entire encoding is done, there would be newly generated columns with category marked with name in place for the nominal variables. For example, when dealing with categorical variables "OCCUPATION_TYPE" which includes different types of occupation (e.g. Core staff, Sales staff, High skill tech staff, etc.), one particular type would be extracted out as a single vector with only 0 and 1 entered in where element 1 is marked for potential users corresponding to the same job. Similarily, the data processing with binary variables such as "GENDER" would be much easier to address.
 
-```{r}
+```{r, eval=FALSE}
 library(dataPreparation)
 
 # Compute encoding with category names
@@ -769,7 +772,7 @@ completeData <- one_hot_encoder(completeData, encoding = encoding, drop = TRUE)
 
 And in order to generate the task for mlr3, we need to transform the target variable into factor type.
 
-```{r}
+```{r, eval=FALSE}
 # convert all character y data into factor data type.
 completeData <- data %>%
   mutate_if(is.character, as.factor) %>%
@@ -899,7 +902,7 @@ We all use **benchmark_grid** to create design, setting with *5 folds cv*, *pred
 
 We will first evaluate how Logistic Regression performs between different data, including different encoding, and different missing value handling. As mentioned above, we pass arguments to **benchmark** function from **mlr3** to train logsitic regression. To train a logistic regression model, we set *lrn("classif.log_reg")* and use **aggregate** function from **mlr3** to extract the results.
 
-```{r}
+```{r eval=FALSE, results='hide', warning=FALSE}
 library(mlr3learners)
 library(mlr3tuning)
 library(paradox)
@@ -931,7 +934,7 @@ lg_results <- lg_bmr$aggregate(measures = all_measures)
 
 For better comparing with each task, we write **multiplot_roc** function with the help of **mlr3viz** package to plots results.
 
-```{r}
+```{r eval =FALSE}
 library(mlr3viz)
 
 # plot for the 6 data tasks
@@ -974,6 +977,10 @@ multiplot_roc(lg_bmr)
 ```
 
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/logistic_all_task.png")
+```
+
 From the ROC plots above, we can see that as for different encoding methods, tasks tackled with WOE encoding generally perform 0.05 better with the AUC score than the corresponding counterpart binary encoding group, as for different missing data handling methods, Logistic Regression has better prediction performance on datasets by deleting missing values with whole row, i.e. **dl_iv_data**, **dl_oh_data**. 
 
 
@@ -981,7 +988,7 @@ From the ROC plots above, we can see that as for different encoding methods, tas
 
 We set *lr("classif.kknn")* to train KNN model.
 
-```{r}
+```{r eval=FALSE, results='hide', warning=FALSE}
 # create a benchmark
 design <- benchmark_grid(
   tasks = task_all,
@@ -997,11 +1004,15 @@ knn_results <- knn_bmr$aggregate(measures = all_measures)
 multiplot_roc(knn_bmr)
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/knn_all_task.png")
+```
+
 ### SVM 
 
 We set *lrn("classif.svm")* to train SVM model.
 
-```{r}
+```{r eval=FALSE}
 # create a benchmark to train a list of tasks with default hyperparameter settings
 design <- benchmark_grid(
   tasks = task_all,
@@ -1017,11 +1028,15 @@ svm_results <- svm_bmr$aggregate(all_measures)
 multiplot_roc(svm_bmr)
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/svm_all_task.png")
+```
+
 ### Random Forest  
 
 We set *lrn("classif.ranger")* to train Random Forest model.
 
-```{r}
+```{r eval=FALSE}
 # create a benchmark to train a list of tasks with default hyperparameter settings
 design <- benchmark_grid(
   tasks = task_all,
@@ -1035,6 +1050,10 @@ rf_results <- rf_bmr$aggregate(all_measures)
 
 # plot roc curve of all tasks
 multiplot_roc(rf_bmr)
+```
+
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/rf_all_task.png")
 ```
 
 +-----------------+---------------+---------------+-----------------+---------------+---------------+-----------------+
@@ -1126,7 +1145,7 @@ lg_over_design <- benchmark_grid(
 
 With *store_models = TRUE* we allow the benchmark function to store each single model that was computed during tuning. Therefore, we can plot the tuning path of the best learner from the subsampling iterations:
 
-```{r}
+```{r ,eval=FALSE,results='hide', message=FALSE, warning=FALSE}
 set.seed(2020)
 
 # create benchmark
@@ -1174,6 +1193,10 @@ library(ggpubr)
 ggarrange(over_gg1, over_gg2, over_gg3, common.legend = TRUE, legend = "bottom")
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("./img/lg_over.png")
+```
+
 We can see from the plots above, logistic regression seems to get better performance when the value of *oversample.ratio* is round 20 and 40. We can not determine the final value of this hyperparameter. Otherwise, we proceed another search with ranging from 15 to 45 to find the best value of *oversample.ratio*. 
  
 ```{r}
@@ -1197,7 +1220,7 @@ lg_over_design <- benchmark_grid(
 )
 ```
 
-```{r}
+```{r ,eval=FALSE,results='hide', message=FALSE, warning=FALSE}
 
 # run benchmark, and save result
 lg_over_bmr <- run_benchmark(lg_over_design)
@@ -1237,6 +1260,10 @@ library(ggpubr)
 
 # combine all plots in one
 ggarrange(over_gg1, over_gg2, over_gg3, common.legend = TRUE, legend = "bottom")
+```
+
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("./img/lg_over_2.png")
 ```
 
 We noticed that two of three plots reach the best AUC value when the value of *oversample.ratio* is 30. Thus we choose the hyperparameter as 30. In conclusion, simple logistic regression achieves the best performance with AUC value 0.7236 when the value of *oversample.ratio* is 30. What is unexpected is that the AUC value of logistic regression does not increase but even slightly decreases after balancing target variable, from 0.7248 to 0.7236. It suggests that *oversampling* method may not be suitable for our dataset.
@@ -1291,7 +1318,7 @@ lg_smote_design <- benchmark_grid(
 
 With *store_models = TRUE* we allow the benchmark function to store each single model that was computed during tuning. Therefore, we can plot the tuning path of the best learner from the subsampling iterations:
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 
 # run benchmark, and save result
 lg_smote_bmr <- run_benchmark(lg_smote_design)
@@ -1330,6 +1357,10 @@ library(ggpubr)
 ggarrange(over_gg1, over_gg2, over_gg3, common.legend = TRUE, legend = "bottom")
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/lg_smote.png")
+```
+
 As shown on the plots above, the green line has the best performance on average, and two plots get the best performance at
 *smote.dup_size* equals 40. hence, it is better to choose *smote.K* with value 15. As for *smote.dup_size*, we will proceed another serach with ranging from 25 to 55 to obtain a considerably better prediction performance.
 
@@ -1361,7 +1392,7 @@ lg_smote_design <- benchmark_grid(
 ```
 
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 # run benchmark, and save the result
 lg_smote_bmr <- run_benchmark(lg_smote_design)
 
@@ -1399,6 +1430,10 @@ library(ggpubr)
 ggarrange(over_gg1, over_gg2, over_gg3, common.legend = TRUE, legend = "bottom")
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/lg_smote_2.png")
+```
+
 Shown on the plots above, we have noticed that two of three plots suggest the best value of *smote.dup_size* is 31.
 Thus we finaly choose the value of *smote.dup_size* as 31.
 
@@ -1414,7 +1449,7 @@ Since there is no parameter to tune in Logistic Regression, we will skip this se
 ### Data balancing  
 #### Oversampling
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 
 knn_learner <- lrn("classif.kknn", predict_type = "prob")
 
@@ -1475,13 +1510,17 @@ ggarrange(over_gg1, over_gg2, over_gg3, common.legend = TRUE, legend="bottom")
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/2_1_knn_over_basic_auc.png")
+```
+
 In the plots above, we see apart from the second plot, the other two plots have the highest AUC at the value at *oversample.ratio*=25. However, if we take a closer look at the y-axis, we notice that the scale is rather small. Thus, it is hard to say whether oversampling is improving the results or not. We will need to do further fine-tuning to find out. Here, we will fix *oversample.ratio* to 25 as it is slightly better, as shown in the plots.
 
 #### SMOTE
 
 In this section, we will use the package **SMOTE** that is included in **mlr3**, to see whethere balancing the data with smote may improve the prediction of the model.
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 knn_learner <- lrn("classif.kknn", predict_type = "prob")
 
 # create smote, and combine it with the current learner
@@ -1545,13 +1584,17 @@ smote_results <- knn_smote_bmr$score() %>%
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/2_1_knn_smote_basic_auc.png")
+```
+
 As we can see in the plot, we tried using **SMOTE** with different combinations of *smote.K* and *smote.dup_size*. Using three-fold cross-validation, we see three plots, and here we do not have a clear winner that outperforms all, but if we take a closer look at the pink curve (*smote.K*=20), we see that it is on top having *smote.dup_size* in the range of 40-50. Based on the trend, we will fix *smote.K* to 20 and *smote.dup_size* to 40 for further fine-tuning.
 
 ### Model tuning
 
 #### Oversampling
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 
 # create oversampling with previously tuned value
 po_over_tuned <- po("classbalancing",
@@ -1612,9 +1655,13 @@ over_dist_para <- bmr_over_dist$score() %>%
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/2_2_knn_over_dist.png")
+```
+
 In this part, we first tune the parameter *distance* from KNN, and we can see that all three sections of the data have very similar. It has the highest AUC at *distance*=1, and gradually declines till *distance*=3. After 3 the AUC performs differently but does not surpass the value with the setting *distance*=1. Furthermore, here we will fix the parameter to 1, and explore other parameters in detail.
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 # list all kernel from KNN
 kernel_type <- c("rectangular", "triangular", "epanechnikov", "biweight"
                 , "triweight", "cos", "inv", "gaussian", "rank", "optimal")
@@ -1651,10 +1698,16 @@ selected_kernel
 
 ```
 
+
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/2_3_knn_over_kern.png")
+print(c("triangular", "biweight", "epanechnikov"))
+```
+
 In this section, we explore the parameter *kernel* from KNN. From the plot shown above, there is no apparent difference between different kernels, except *triweight* being the lowest in all three plots. To reduce the computational cost and perform further fine-tuning, we will select the top kernel from each plot, being *triangular*, *biweight*, and *epanechnikov*, and tune *k* with these selected kernels.
 
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 # tune k with selected kernels
 knn_over_lrn <- GraphLearner$new(po_over_tuned %>>% lrn("classif.kknn", 
                       predict_type = "prob", distance=1), predict_type = "prob")
@@ -1706,11 +1759,16 @@ bmr_over_k$aggregate(measures = msr("classif.auc"))[[7]]
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/2_4_knn_over_k_kern.png")
+print(0.7594135)
+```
+
 Finally, we want to tune *k* with kernels we selected in the previous section. Beside *epanechnikov* being lowest in all plot, there is no straightforward winner between *triangular* and *biweight*. We can see that AUC is the highest in the range of 40 to 80. If we take a closer look in this range, we notice that *triangular* is slightly better. Based on the trend of the 3 plots above, it is reasonable to select *triangular* as our kernel, with *k* set to 80. Finally, after balancing data with **Oversampling** we get a model with AUC 0.7594.
 
 #### SMOTE
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 
 inner_rsmp <- rsmp("cv",folds = 3L)
 outer_rsmp <- rsmp("cv", folds = 3L)
@@ -1775,9 +1833,13 @@ ggarrange(smote_dist_gg1, smote_dist_gg2, smote_dist_gg3,
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/2_2_knn_smote_dist.png")
+```
+
 First, we only tune the parameter *distance* with all other parameters fixed to default to evaluate the influence of the parameter *distance*. In the plot above, we can see that the AUC grows as we increase the value of *distance*. Still, after 3, there is no significant improvement and even declines in one plot. Based on this, we will fix the value to 3 to perform further fine-tuning.
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 
 # tune kernel with selected distance
 knn_smote_lrn <- GraphLearner$new(po_smote_tuned %>>% lrn("classif.kknn", 
@@ -1823,9 +1885,13 @@ ggarrange(smote_kern_gg1, smote_kern_gg2, smote_kern_gg3,
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/2_3_knn_smote_kern.png")
+```
+
 Now with the *distance* fixed to 3, we compare how each kernel influences the AUC. As we can see, the scale of the y-axis is considerably small, meaning that there is no vast difference between kernels. But to reduce the computation cost, we will the one with the highest AUC in each plot, being: *rectangular*, *triangular*, and we will additionally take *gaussian* for comparison.
 
-```{r}
+```{r, eval=FALSE ,results='hide', message=FALSE, warning=FALSE}
 # tune k with selected distance and kernel
 selected_kern <- c("rectangular", "triangular", "gaussian")
 para_k <- ParamSet$new(params = list(ParamInt$new("classif.kknn.k", 
@@ -1879,6 +1945,11 @@ bmr_smote_k$aggregate(measures = msr("classif.auc"))[[7]]
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/2_4_knn_smote_k_kern.png")
+print(0.7730217)
+```
+
 In the final step, we tuned *k* and *kernel* together. Here, we can see that *rectangular* falls behind both other kernels. Between *gaussian* and *triangular*, there is no obvious winner. The default value of *k* is 7, and here we selected our range 20-100 by experimenting with our data before tuning. In the previous plot (Default: *k*=7), we see there is no significant difference in the AUC between kernels. 
 
 Furthermore, the plot above shows as *k* increase the difference between kernels becomes larger. This suggests that it would be meaningful to tune all *kernel* among *k*. However, since there is no enormous improvement in AUC and the limitation of computation power, we only tuned 3 in our experiment. Finally, after balancing data with **SMOTE** we get a model with AUC 0.7730.
@@ -1890,6 +1961,7 @@ When it comes to use the SVM learner to do the model tuning, we need to firstly 
 The following model tuning steps are made up of two prime procedures: data balancing, which consists of two methods: **SMOTE** and **Oversampling**, and model tuning steps with different parameters.
 
 ### Data balancing 
+
 
 Considering the extremely imbalanced target variable _y_ to process, we will firstly balance the present target. In order to improve the accuracy of the prediction performance, we will need to implement mainly two methods: **SMOTE** and **Oversampling** to get the relatively balanced target variable after processing and there are no biased preference with the two data balancing methods, which means that we need to both implement the two methods on our original target variable _y_ and choose the best one with the highest AUC score after the final model tuning process.
 
@@ -1927,7 +1999,7 @@ svm_auto_smote <- AutoTuner$new(
 )
 ```
 
-```{r}
+```{r echo=FALSE,eval=FALSE}
 # outer resampling set
 outer_rsmp <- rsmp("cv", folds = 3L)
 
@@ -1969,6 +2041,10 @@ ggarrange(svm_ggp1, svm_ggp2, svm_ggp3, common.legend = TRUE, legend = "bottom")
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/svm_smote.png")
+```
+
 As can be seen from the plots above, *smote.dup_size* is showing better prediction performance when defined as 40 and *smote.K* shall be defined as 21 which is having more stable training performance with color blue correspondingly.
 
 Then the next step would be to determine which *kernel* function type to use with fixed *smote.dup_size* value and *smote.K* value.
@@ -1981,7 +2057,7 @@ We have decided not to use the **oversampling** method to balance the origianl t
 ### Model tuning
 
 Regarding the choice of suitable kernel function with SVM, there are in total four options to choose: *linear*, *polynomial*, *radial*, *sigmoid*. The default value for the **mlr3** SVM learner is the *radical* function. Thence, we need to implement the other three kernel functions on the previous training models with the **dl_iv_data** task and again use the *grid_search* to check which *kernel* function will generate better prediction performance shown with higher AUC value.
-```{r}
+```{r, eval=FALSE}
 # train with kernel type
 kernel_type <- c("linear", "polynomial", "radial", "sigmoid")
 param_kernel <- ParamSet$new(params = list(ParamFct$new("classif.svm.kernel", 
@@ -1999,7 +2075,7 @@ svm_auto_kernel <- AutoTuner$new(
 )
 ```
 
-```{r}
+```{r echo=FALSE,eval=FALSE}
 # design for smote
 design_kernel <- benchmark_grid(
   tasks = task,
@@ -2037,9 +2113,14 @@ svm_ggp3 <- ggplot(kernel_path3, aes(
 ggarrange(svm_ggp1, svm_ggp2, svm_ggp3, common.legend = TRUE, legend = "bottom")
 ```
 
+
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/svm_kernel.png")
+```
+
 As can seen from the plots which refer to the comparison with different *kernel* functions, the best performance is given by the *radial* function for the **dl_iv_data** task. Nevertheless, we still need to figure out the optimal choice with parameter *cost* and *gamma* and as for the tuning range for *cost*, the first try would be to set with 0.1, 1, 10 and 100.
 
-```{r}
+```{r, eval=FALSE}
 svm_lrn <- lrn("classif.svm", predict_type = "prob",
                kernel = "radial", type = "C-classification")
 
@@ -2063,7 +2144,7 @@ svm_auto_smote <- AutoTuner$new(
 )
 ```
 
-```{r}
+```{r echo=FALSE,eval=FALSE}
 # design for cost
 design_cost <- benchmark_grid(
   tasks = task,
@@ -2102,9 +2183,14 @@ svm_ggp3 <- ggplot(cost_path3, aes(
 ggarrange(svm_ggp1, svm_ggp2, svm_ggp3, common.legend = TRUE, legend = "bottom")
 ```
 
+
+```{r eval=FALSE,echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/svm_cost.png")
+```
+
 Shown on the three plots above, two of them are suggesting that by setting _classif.svm.cost_ to 0.1 will lead to the highest AUC score. Thus, it is better to choose *cost* with value 0.1. Hence, the last step would be to tune *gamma* for the **dl_iv_data** training task. Configuing the training set with [1, 0.1, 0.01, 0.001] for *gamma* as suggested by, we would like to see the changing trend of the tuning performance and determine for the ultimate *gamma* accordingly.
 
-```{r}
+```{r eval=FALSE}
 svm_lrn <- lrn("classif.svm", predict_type = "prob", kernel = "radial",
                cost = 0.1, type = "C-classification")
 
@@ -2130,7 +2216,7 @@ svm_auto_smote <- AutoTuner$new(
 )
 ```
 
-```{r}
+```{r echo=FALSE,eval=FALSE}
 # design for gamma
 design_gamma <- benchmark_grid(
   tasks = task,
@@ -2169,9 +2255,15 @@ svm_ggp3 <- ggplot(gamma_path3, aes(
 ggarrange(svm_ggp1, svm_ggp2, svm_ggp3, common.legend = TRUE, legend = "bottom")
 ```
 
+```{r eval=FALSE,echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/svm_gamma.png")
+```
+
 As suggested by the three plots simultaneously, _classif.auc_ will always reach the summit when _classif.svm.gamma_ is chosen with value 0.75.
 
 In conclusion, it is better to go with _radial_ kernel function, _cost_ being set to 0.1 and _gamma_ being set to 0.75 on the condition that _smote.dup_size_ is set to 40 and _smote.K_ to 21. And the ultimate prediction performance measured by AUC is therefore 0.7839 with an increase of 0.2621 in regards to the previous svm model with default parameter settings.
+
+
 
 ## Random Forest
 
@@ -2183,7 +2275,7 @@ Similarily, we would consider both the **SMOTE** function and the **Oversampling
 
 As mentioned in chapter 3, we fix the parameter *num.trees* with value 1000 and set training range 30 to 60 for *smote.dup_size* and 10 to 20 for *smote.K* seperately in order to find the best training pairs with the two parameters, reaching the best prediction performance.
 
-```{r}
+```{r eval=FALSE}
 library(ranger)
 
 # step 1: test for best matches with smote function's parameter
@@ -2252,6 +2344,10 @@ rf_ggp3 <- ggplot(smote_path3, aes(
 ggarrange(rf_ggp1, rf_ggp2, rf_ggp3, common.legend = TRUE, legend = "bottom")
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/rf_smote.png")
+```
+
 We can see from the three plots above, two plots are showing that *smote.dup_size* ranging from 37 to 53 together with *smote.k* from 15 to 20 tends to have better AUC values. So we would go with the corresponding parameter range with 37 to 53 for **smote.dup_size**, which will have the relatively high score with the prediction performance. However, we cannot decide the optimal range of parameter setting for **smote.k** since the changing trend for **K** is not so clear with different colors. Then we need to fix the *smote.dup_size* to 37 to 53 and reset the *smote.k* with 5 to 25, repeating the *grid_search* again to explore the two parameters further.
 
 ```{r}
@@ -2268,7 +2364,7 @@ param_smote <- ParamSet$new(params = list(
 rf_smote_lrn <- GraphLearner$new(po_smote %>>% rf_lrn, predict_type = "prob")
 ```
 
-```{r}
+```{r echo=FALSE, eval=FALSE}
 # create Autolearner for step 1
 rf_auto_smote <- AutoTuner$new(
   learner = rf_smote_lrn, resampling = inner_rsmp,
@@ -2312,6 +2408,10 @@ rf_ggp3 <- ggplot(smote_path3, aes(
   geom_line()
 
 ggarrange(rf_ggp1, rf_ggp2, rf_ggp3, common.legend = TRUE, legend = "bottom")
+```
+
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/rf_smote_2.png")
 ```
 
 Shown on the plots above, we have discovered that the two parameters _smote.dup_size_ and _smote.k_ should be set to 45 and 15 seperately where the AUC distributions always tend to have a summit around _dup_size_ value 45 and _K_ with value 15 is much more stable with the prediction performance here at the same time. Then the next step we shall need to stay with the optimal smote parameter settings ( _smote.dup_size_ is set to 45 and _smote.k_ to 15) and take the _mtry_ and the _num.trees_ parameters into consideration with parameters' tuning ranges set to 1-13 and 400-1700 as suggested by chapter 5.4 with the **tuneRanger** algorithm in order to get the best pair settings with the highest AUC value.
@@ -2360,7 +2460,7 @@ rf_over_design <- benchmark_grid(
 
 With *store_models = TRUE* we allow the benchmark function to store each single model that was computed during tuning. Therefore, we can plot the tuning path of the best learner from the subsampling iterations:
 
-```{r}
+```{r ,eval=FALSE,results='hide', message=FALSE, warning=FALSE}
 
 rf_over_bmr <- run_benchmark(rf_over_design)
 
@@ -2396,6 +2496,10 @@ library(ggpubr)
 ggarrange(over_gg1, over_gg2, over_gg3, common.legend = TRUE, legend = "bottom")
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("./img/rf_over_1.png")
+```
+
 We can clearly see from all the three plots above, the **oversampling** method is not showing a stable changing trend with the corresponding _oversample.ratio_. The overall prediction performances given by the AUC value of the three figures are quite fluctuated and there are no fixed parameter range to choose with the best prediction score. Therefore, it is not suitable to use the **oversampling** method to resolve the imbalanced variables _y_. 
 
 Thence, we will focus on using the already tuned parameter settings for the **SMOTE** function to  undergo the further model tuning procedures with different parameters _num.trees_, _mtry_, _min.node.size_ and _sample.fraction_ for random forest. The following is the detailed model tuning process. 
@@ -2419,7 +2523,7 @@ po_smote <- po("smote", dup_size = 45, K = 15)
 rf_smote_lrn <- GraphLearner$new(po_smote %>>% rf_lrn, predict_type = "prob")
 ```
 
-```{r}
+```{r eval=FALSE,echo=FALSE}
 # create Autolearner for rf_learner
 rf_auto_smote <- AutoTuner$new(
   learner = rf_smote_lrn, resampling = inner_rsmp,
@@ -2473,7 +2577,12 @@ rf_ggp3 <- ggplot(nt_mtry_path3, aes(
 ggarrange(rf_ggp1, rf_ggp2, rf_ggp3, common.legend = TRUE, legend = "bottom")
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/rf_smote_3.png")
+```
+
 So, we would go with the combination of _num.trees_ = 1000 and _mtry_ = 7. And the next step would be to tune _min.node.size_ and _sample.fraction_ with the previous selected parameters settings. According to **tuneRanger** algorithm, we shall try setting tuning range for _min.node.size_ from 2 to 8 and _sample.fraction_ from 0.5 to 0.8 and see the corresponding AUC performance.
+
 
 ```{r}
 # RF with 4 different paramSets, to analysis how to do further tuning
@@ -2492,7 +2601,7 @@ po_smote <- po("smote", dup_size = 45, K = 15)
 rf_smote_lrn <- GraphLearner$new(po_smote %>>% rf_lrn, predict_type = "prob")
 ```
 
-```{r}
+```{r eval=FALSE,echo=FALSE}
 # create Autolearner for rf_learner
 rf_auto_smote <- AutoTuner$new(
   learner = rf_smote_lrn, resampling = inner_rsmp,
@@ -2540,6 +2649,10 @@ rf_ggp3 <- ggplot(mns_sf_path3, aes(
 ggarrange(rf_ggp1, rf_ggp2, rf_ggp3, common.legend = TRUE, legend = "bottom")
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/rf_smote_4.png")
+```
+
 We would go with *min.node.size* = 3 as we can see the AUC value tends to reach the best performance when we set it to 3. However, it is still not clear the approximated defined range for parameter *sample.fraction*. Next, we need to retrain the model with a wider range with parameter *sample.fraction* from 0.45 to 0.95.
 
 ```{r}
@@ -2563,7 +2676,7 @@ po_smote <- po("smote", dup_size = 45, K = 15)
 rf_smote_lrn <- GraphLearner$new(po_smote %>>% rf_lrn, predict_type = "prob")
 ```
 
-```{r}
+```{r eval=FALSE,echo=FALSE}
 # create Autolearner for rf_learner
 rf_auto_smote <- AutoTuner$new(
   learner = rf_smote_lrn, resampling = inner_rsmp,
@@ -2610,6 +2723,10 @@ ggarrange(rf_ggp1, rf_ggp2, rf_ggp3, common.legend = TRUE, legend = "bottom")
 
 ```
 
+```{r echo=FALSE,out.width = "100%", fig.pos="h"}
+knitr::include_graphics("img/rf_smote_5.png")
+```
+
 When reaching the highest AUC value, *sample.fraction* is always taking good performance values around 0.55 and 0.6 and the distributions of *min.node.size* are showing better performance results (measured by AUC) with value 3. Therefore, we would choose the *sample.fraction* with 0.575 and have a better AUC performance value with 0.83.
 
 After the step-by-step hyperparameter tuning, we have finally managed to reach our best prediction performance with AUC value fixed at 0.83 which shows the improvement of 0.07 in comparison with the performance of Random Forest's default model with value 0.76. In conclusion, when *smote.dup_size* being set to 45 and *smote.K* to 15 with the SMOTE operator, the final parameter settings combination would be *num.trees* = 1000, *mtry* = 7, *min.node.size* = 3 and *sample.fraction* = 0.575, reaching an AUC level at 0.83.
@@ -2624,6 +2741,7 @@ After the step-by-step hyperparameter tuning, we have finally managed to reach o
 In general, we have implemented four different training models (**Logistic Regression**, **KNN**, **SVM** and **Random Forest**) on the same training task (**dl_iv_data**) to decide whether or not to approve the issuance of the credit card to potential customers. Besides the basic training process with default parameter settings with the above four models, we have also discovered the necessary methods (the **SMOTE Operator** and the **Oversampling Operator**) to tackle with the imbalanced target variable _y_ and tune the models with the corresponding parameters belonging to each model afterwards. By plotting the changing trend of specified parameters with the corresponding prediction performances measured by the **AUC** score separately, we shall be able to determine for the best parameter setting combinations and achieve the highest AUC score with the ultimate chosen model. 
 
 The ultimate prediction performances are shown in the following table including training results with default parameter settings, model tuning prediction results after the **Oversampling Operator** and the **SMOTE algorithm**.
+
 
 ```{r, echo=FALSE}
 library(kableExtra) # load required package for the data table with performance output shown
@@ -2650,6 +2768,8 @@ After determining for the related parameters which are used for data balancing a
 
 Based on our previous work, there are still many aspects can be improved in our article. First of all, more powerful models that we can use to solve some problems that we met. For example, it's computationally expensive to train the SVM model, a 3*3 nested resampling of SVM model takes 5 hours. Secondly, we have tried xgboost and we found it extremly fast to excute but with the worst prediction performance of all (AUC values are less than 0.5 and did not improve after any kinds of model tuning).
 On the other hand, there are still a lot of cutting-edge models we haven't used, e.g. lightGBM(not included in mlr3 yet), Deep learning method(require high computational power). Last but not least, there are still areas to explore in our feature engineering procedure. For example, dimension reduction methods such as PCA, MDS and Factor analysis (included in mlr3 filters) can also be used.
+
+
 
 \newpage 
 
