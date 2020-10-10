@@ -48,21 +48,22 @@ rm(dl_iv_data, mf_iv_data, mice_iv_data, dl_oh_data, mf_oh_data, mice_oh_data)
 knn_learner <- lrn("classif.kknn", predict_type = "prob")
 
 # setting the tunning for parameters, and terminator
-knn_param_set <- ParamSet$new(params = list(ParamInt$new("k", lower = 50, upper = 50)))
-terms <- term("none")
-measure <- msr("classif.fbeta")
+knn_param_set <- ParamSet$new(params = list(ParamInt$new("k", lower = 3, upper = 5)))
+terms <- trm("evals", n_evals=1)
+#measure <- msr("classif.auc")
 
 # creat autotuner, using the inner sampling and tuning parameter with random search
-inner_rsmp <- rsmp("cv", folds = 5L)
+inner_rsmp <- rsmp("cv", folds = 2L)
 knn_auto <- AutoTuner$new(learner = knn_learner, resampling = inner_rsmp, 
-                          measures = measure, tune_ps = knn_param_set,
+                          #measure = measure, 
+                          search_space = knn_param_set,
                           terminator = terms, tuner = tnr("grid_search"))
 
 # outer_rsmp <- rsmp("cv", folds = 3L)
 outer_rsmp <- rsmp("holdout")
 design = benchmark_grid(
   tasks = tasks,
-  learners = knn_auto,
+  learners = knn_learner,
   resamplings = outer_rsmp
 )
 
@@ -75,72 +76,55 @@ knn_bmr <- benchmark(design, store_models = TRUE)
 multiplot_roc <- function(models, type="roc"){
   plots <- list()
   thm <- theme(axis.text.x = element_blank(), axis.text.y = element_blank())
-  model <- models$clone()$filter(task_id = "dl_iv")
+  model <- models$clone(deep = TRUE)$filter(task_id = "dl_iv")
   auc <- round(model$aggregate(msr("classif.auc"))[[7]], 4)
   plots[[1]] <- autoplot(model, type = type) + ggtitle(paste("dl_iv:", auc)) + thm
   
-  model <- models$clone()$filter(task_id = "mf_iv")
+  model <- models$clone(deep = TRUE)$filter(task_id = "mf_iv")
   auc <- round(model$aggregate(msr("classif.auc"))[[7]], 4)
   plots[[2]] <- autoplot(model, type = type) + ggtitle(paste("mf_iv:", auc)) + thm
   
-  model <- models$clone()$filter(task_id = "mice_iv")
+  model <- models$clone(deep = TRUE)$filter(task_id = "mice_iv")
   auc <- round(model$aggregate(msr("classif.auc"))[[7]], 4)
   plots[[3]] <- autoplot(model, type = type) + ggtitle(paste("mice_iv:", auc)) + thm
   
-  model <- models$clone()$filter(task_id = "dl_oh")
+  model <- models$clone(deep = TRUE)$filter(task_id = "dl_oh")
   auc <- round(model$aggregate(msr("classif.auc"))[[7]], 4)
   plots[[4]] <- autoplot(model, type = type) + ggtitle(paste("dl_oh:", auc)) + thm
   
-  model <- models$clone()$filter(task_id = "mf_oh")
+  model <- models$clone(deep = TRUE)$filter(task_id = "mf_oh")
   auc <- round(model$aggregate(msr("classif.auc"))[[7]], 4)
   plots[[5]] <- autoplot(model, type = type) + ggtitle(paste("mf_oh:", auc)) + thm
   
-  model <- models$clone()$filter(task_id = "mice_oh")
+  model <- models$clone(deep = TRUE)$filter(task_id = "mice_oh")
   auc <- round(model$aggregate(msr("classif.auc"))[[7]], 4)
   plots[[6]] <- autoplot(model, type = type) + ggtitle(paste("mice_oh", auc)) + thm
   do.call("grid.arrange", plots)
 }
 
-multiplot_fbeta <- function(models){
-  plots <- list()
-  thm <- theme(axis.text.x = element_blank(), axis.text.y = element_blank())
-  msr_f <- msr("classif.fbeta")
-  
-  model <- models$clone()$filter(task_id = "dl_iv")
-  fbeta <- round(model$aggregate(msr_f)[[7]], 4)
-  print(paste("dl_iv: ", fbeta))
-  #plots[[1]] <- autoplot(model, type = type) + ggtitle(paste("dl_iv:", auc)) + thm
-  
-  model <- models$clone()$filter(task_id = "mf_iv")
-  fbeta <- round(model$aggregate(msr_f)[[7]], 4)
-  print(paste("mf_iv: ", fbeta))
-  #plots[[2]] <- autoplot(model, type = type) + ggtitle(paste("mf_iv:", auc)) + thm
-  
-  model <- models$clone()$filter(task_id = "mice_iv")
-  fbeta <- round(model$aggregate(msr_f)[[7]], 4)
-  print(paste("mice_iv: ", fbeta))
-  #plots[[3]] <- autoplot(model, type = type) + ggtitle(paste("mice_iv:", auc)) + thm
-  
-  model <- models$clone()$filter(task_id = "dl_oh")
-  fbeta <- round(model$aggregate(msr_f)[[7]], 4)
-  print(paste("dl_oh: ", fbeta))
-  #plots[[4]] <- autoplot(model, type = type) + ggtitle(paste("dl_oh:", auc)) + thm
-  
-  model <- models$clone()$filter(task_id = "mf_oh")
-  fbeta <- round(model$aggregate(msr_f)[[7]], 4)
-  print(paste("mf_oh: ", fbeta))
-  #plots[[5]] <- autoplot(model, type = type) + ggtitle(paste("mf_oh:", auc)) + thm
-  
-  model <- models$clone()$filter(task_id = "mice_oh")
-  fbeta <- round(model$aggregate(msr_f)[[7]], 4)
-  print(paste("mice_oh: ", fbeta))
-  #plots[[6]] <- autoplot(model, type = type) + ggtitle(paste("mice_oh", auc)) + thm
-  #do.call("grid.arrange", plots)
-  
-}
-
-# roc: x= 1-Specificity, y= Sensitivity
-# prc: x= Recall, y= Precision
-
 multiplot_roc(knn_bmr)
 
+# -----------------
+
+learner = lrn("classif.kknn", predict_type = "prob")
+pred = learner$train(tasks[[1]])$predict(tasks[[1]])
+ggplot2::autoplot(pred, type = "roc")
+
+# -----------------
+
+task = tasks[[1]]
+learner = lrn("classif.kknn", predict_type = "prob")
+resampling = rsmp("holdout")
+a = msr("classif.auc")
+param_set = paradox::ParamSet$new(
+  params = list(paradox::ParamInt$new("k", lower = 3, upper = 5)))
+terminator = trm("evals", n_evals = 5)
+tuner = tnr("grid_search", resolution = 10)
+
+at = AutoTuner$new(learner, resampling, measure = measure,
+                   param_set, terminator, tuner = tuner)
+
+
+resampling_outer = rsmp("cv", folds = 3)
+rr = resample(task = task, learner = at, resampling = resampling_outer)
+autoplot(rr, type = "roc")
