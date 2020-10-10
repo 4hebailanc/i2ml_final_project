@@ -128,3 +128,34 @@ at = AutoTuner$new(learner, resampling, measure = measure,
 resampling_outer = rsmp("cv", folds = 3)
 rr = resample(task = task, learner = at, resampling = resampling_outer)
 autoplot(rr, type = "roc")
+
+
+# -------------------- 
+
+# get some example tasks
+#tasks = lapply(c("german_credit", "sonar"), tsk)
+
+tasks_t = list(tasks[[1]], tasks[[2]])
+
+#learners = c("classif.kknn")
+#learners = lapply(learners, lrn,
+#                  predict_type = "prob", predict_sets = c("train", "test"))
+
+learner = lrn("classif.kknn", predict_type = "prob", predict_sets = c("train", "test"))
+
+# compare via 3-fold cross validation
+resamplings = rsmp("cv", folds = 2)
+
+# create a BenchmarkDesign object
+design = benchmark_grid(tasks_t, learner, resamplings)
+print(design)
+
+bmr = benchmark(design)
+
+measures = list(
+  msr("classif.auc", id = "auc_train", predict_sets = "train"),
+  msr("classif.auc", id = "auc_test")
+)
+bmr$aggregate(measures)
+
+autoplot(bmr$clone(deep = TRUE)$filter(task_id = "dl_iv"), type = "roc")
